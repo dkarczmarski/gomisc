@@ -10,7 +10,9 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	service := firewall.Service{}
+	service := firewall.Service{
+		WrapperCmd: "sudo",
+	}
 
 	mux.HandleFunc("POST /api/ip/add", func(w http.ResponseWriter, r *http.Request) {
 		//todo: get client IP address

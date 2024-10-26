@@ -16,6 +16,8 @@ type IPEntry struct {
 }
 
 type Service struct {
+	WrapperCmd string
+
 	entries []*IPEntry
 }
 
