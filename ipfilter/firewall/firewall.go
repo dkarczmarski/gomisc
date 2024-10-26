@@ -15,10 +15,36 @@ type IPEntry struct {
 	IP string
 }
 
-type Service struct {
-	WrapperCmd string
+type config struct {
+	wrapperCmd string
+}
 
-	entries []*IPEntry
+func WithSudoWrapper() func(*config) {
+	return func(c *config) {
+		c.wrapperCmd = "sudo"
+	}
+}
+
+func WithEchoWrapper() func(*config) {
+	return func(c *config) {
+		c.wrapperCmd = "echo"
+	}
+}
+
+type Service struct {
+	wrapperCmd string
+	entries    []*IPEntry
+}
+
+func NewService(opts ...func(*config)) *Service {
+	var cnf config
+	for _, ops := range opts {
+		ops(&cnf)
+	}
+
+	return &Service{
+		wrapperCmd: cnf.wrapperCmd,
+	}
 }
 
 func (srv *Service) AddIP(ip string) error {

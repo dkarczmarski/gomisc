@@ -89,9 +89,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			service := &firewall.Service{
-				WrapperCmd: "echo",
-			}
+			service := firewall.NewService(firewall.WithEchoWrapper())
 
 			if tt.initBefore != nil {
 				tt.initBefore(service)
