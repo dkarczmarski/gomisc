@@ -11,7 +11,9 @@
 <ul>
     {{ range . }}
     <li>
-        {{ .IP -}}
+        IP: {{ .IP }}
+        CreatedAt: {{ .CreatedAt.Format "2006-01-02 15:04:05" }}
+        UpdatedAt: {{ .UpdatedAt.Format "2006-01-02 15:04:05" }}
         <form action="/api/ip/delete" method="post">
             <input type="hidden" name="ip" value="{{.IP}}"/>
             <input type="submit" value="remove"/>

@@ -9,14 +9,18 @@ import (
 	"net"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type IPEntry struct {
-	IP string
+	IP        string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type config struct {
 	wrapperCmd string
+	timeFunc   func() time.Time
 }
 
 func WithSudoWrapper() func(*config) {
@@ -31,9 +35,16 @@ func WithEchoWrapper() func(*config) {
 	}
 }
 
+func WithTimeFunc(f func() time.Time) func(*config) {
+	return func(c *config) {
+		c.timeFunc = f
+	}
+}
+
 type Service struct {
 	wrapperCmd string
 	entries    []*IPEntry
+	timeFunc   func() time.Time
 }
 
 func NewService(opts ...func(*config)) *Service {
@@ -44,23 +55,28 @@ func NewService(opts ...func(*config)) *Service {
 
 	return &Service{
 		wrapperCmd: cnf.wrapperCmd,
+		timeFunc:   cnf.timeFunc,
 	}
 }
 
 // AddIP runs firewall command to add that ip.
-// When ip has been already added by this method then the next call skip it silently.
+// When ip has been already added by this method then the next call only update UpdatedAt field.
 func (srv *Service) AddIP(ip string) error {
 	if net.ParseIP(ip) == nil {
 		return errors.New("incorrect ip")
 	}
 
 	if _, entry := srv.findByIP(ip); entry != nil {
+		entry.UpdatedAt = srv.timeFunc()
 		return nil
 	}
 
 	// add to registry
+	now := srv.timeFunc()
 	entry := &IPEntry{
-		IP: ip,
+		IP:        ip,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 	srv.entries = append(srv.entries, entry)
 

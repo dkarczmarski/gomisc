@@ -5,12 +5,16 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
 	mux := http.NewServeMux()
 
-	service := firewall.NewService(firewall.WithSudoWrapper())
+	service := firewall.NewService(
+		firewall.WithTimeFunc(time.Now),
+		firewall.WithSudoWrapper(),
+	)
 
 	mux.HandleFunc("POST /api/ip/add", func(w http.ResponseWriter, r *http.Request) {
 		//todo: get client IP address
