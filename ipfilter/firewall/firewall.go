@@ -47,9 +47,15 @@ func NewService(opts ...func(*config)) *Service {
 	}
 }
 
+// AddIP runs firewall command to add that ip.
+// When ip has been already added by this method then the next call skip it silently.
 func (srv *Service) AddIP(ip string) error {
 	if net.ParseIP(ip) == nil {
 		return errors.New("incorrect ip")
+	}
+
+	if _, entry := srv.findByIP(ip); entry != nil {
+		return nil
 	}
 
 	// add to registry

@@ -54,6 +54,23 @@ func TestService_AddDeleteIP(t *testing.T) {
 			},
 		},
 		{
+			name: "add the same ip",
+			initBefore: func(service *firewall.Service) {
+				_ = service.AddIP("1.2.3.4")
+			},
+			testFunc: func(service *firewall.Service) error {
+				return service.AddIP("1.2.3.4")
+			},
+			expectedErr: func(err error) bool {
+				return err == nil
+			},
+			expectedList: []firewall.IPEntry{
+				{
+					IP: "1.2.3.4",
+				},
+			},
+		},
+		{
 			name: "delete incorrect ip",
 			testFunc: func(service *firewall.Service) error {
 				return service.DeleteIP("1.2.3,,4")
