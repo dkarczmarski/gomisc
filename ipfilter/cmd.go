@@ -1,16 +1,24 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"github.com/dkarczmarski/gomisc/ipfilter/firewall"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
 	"time"
 )
 
 func main() {
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
+
 	mux := http.NewServeMux()
 
+	// todo: concurrent
 	service := firewall.NewService(
 		firewall.WithTimeFunc(time.Now),
 		firewall.WithSudoWrapper(),
@@ -52,12 +60,51 @@ func main() {
 		}
 	})
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+	loop:
+		for {
+			deleted, err := service.DeleteOutOfDate(15 * time.Second)
+			if err != nil {
+				log.Print(err)
+			}
+			if len(deleted) > 0 {
+				log.Printf("deleted out-of-date entries: %+v", deleted)
+			}
+
+			select {
+			case <-time.After(time.Second):
+			case <-ctx.Done():
+				log.Printf("out-of-date scheduler: %v", ctx.Err())
+				break loop
+			}
+		}
+
+		log.Printf("firewall entries: %+v", service.List())
+		wg.Done()
+	}()
+
 	server := &http.Server{
 		Addr:    "127.0.0.1:8080",
 		Handler: mux,
 	}
 
-	if err := server.ListenAndServe(); err != nil {
+	wg.Add(1)
+	go func() {
+		<-ctx.Done()
+		log.Println("the server is shutting down")
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_ = server.Shutdown(ctx)
+		log.Println("server is shut down")
+		wg.Done()
+	}()
+
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+
+	wg.Wait()
 }

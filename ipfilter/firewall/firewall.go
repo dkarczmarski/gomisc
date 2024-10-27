@@ -134,3 +134,43 @@ func (srv *Service) List() []IPEntry {
 	}
 	return entries
 }
+
+func (srv *Service) DeleteOutOfDate(duration time.Duration) ([]IPEntry, error) {
+	before := srv.timeFunc().Add(-duration)
+
+	entriesBefore := srv.findAllBefore(before)
+	if entriesBefore == nil {
+		return []IPEntry{}, nil
+	}
+
+	deletedEntries := make([]IPEntry, 0, len(entriesBefore))
+	for _, entry := range entriesBefore {
+		if err := srv.DeleteIP(entry.IP); err != nil {
+			return deletedEntries, err
+		}
+
+		deletedEntries = append(deletedEntries, *entry)
+	}
+
+	return deletedEntries, nil
+}
+
+func (srv *Service) findAllBefore(before time.Time) []*IPEntry {
+	var counter int
+	for _, ee := range srv.entries {
+		if ee.UpdatedAt.Before(before) {
+			counter++
+		}
+	}
+	if counter == 0 {
+		return nil
+	}
+
+	entries := make([]*IPEntry, 0, counter)
+	for _, ee := range srv.entries {
+		if ee.UpdatedAt.Before(before) {
+			entries = append(entries, ee)
+		}
+	}
+	return entries
+}

@@ -4,6 +4,7 @@ import (
 	"github.com/dkarczmarski/gomisc/ipfilter/firewall"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestService_AddDeleteIP(t *testing.T) {
@@ -150,6 +151,102 @@ func TestService_AddDeleteIP(t *testing.T) {
 				if !reflect.DeepEqual(service.List(), tt.expectedList) {
 					t.Error()
 				}
+			}
+		})
+	}
+}
+
+func TestService_DeleteOutOfDate(t *testing.T) {
+	for _, tt := range []struct {
+		name           string
+		initBefore     func(service *firewall.Service, fixedTime *firewall.FixedTime)
+		deleteAt       string
+		deleteDuration time.Duration
+		expectedErr    func(err error) bool
+		expectedList   []firewall.IPEntry
+	}{
+		{
+			name: "when empty",
+			initBefore: func(service *firewall.Service, fixedTime *firewall.FixedTime) {
+			},
+			deleteAt:       "2001-01-01 10:00:00",
+			deleteDuration: 5 * time.Minute,
+			expectedErr: func(err error) bool {
+				return err == nil
+			},
+			expectedList: []firewall.IPEntry{},
+		},
+		{
+			name: "when none is out-of-date",
+			initBefore: func(service *firewall.Service, fixedTime *firewall.FixedTime) {
+				fixedTime.SetDateTime("2001-01-01 10:00:00")
+				_ = service.AddIP("1.2.3.4")
+			},
+			deleteAt:       "2001-01-01 10:04:00",
+			deleteDuration: 5 * time.Minute,
+			expectedErr: func(err error) bool {
+				return err == nil
+			},
+			expectedList: []firewall.IPEntry{},
+		},
+		{
+			name: "when CreatedAt is out-of-date but not UpdatedAt",
+			initBefore: func(service *firewall.Service, fixedTime *firewall.FixedTime) {
+				fixedTime.SetDateTime("2001-01-01 10:00:00")
+				_ = service.AddIP("1.2.3.4")
+
+				fixedTime.SetDateTime("2001-01-01 10:04:00")
+				_ = service.AddIP("1.2.3.4")
+			},
+			deleteAt:       "2001-01-01 10:06:00",
+			deleteDuration: 5 * time.Minute,
+			expectedErr: func(err error) bool {
+				return err == nil
+			},
+			expectedList: []firewall.IPEntry{},
+		},
+		{
+			name: "when one entry is out-of-date",
+			initBefore: func(service *firewall.Service, fixedTime *firewall.FixedTime) {
+				fixedTime.SetDateTime("2001-01-01 10:00:00")
+				_ = service.AddIP("1.2.3.4")
+
+				fixedTime.SetDateTime("2001-01-01 10:04:00")
+				_ = service.AddIP("2.2.8.8")
+			},
+			deleteAt:       "2001-01-01 10:06:00",
+			deleteDuration: 5 * time.Minute,
+			expectedErr: func(err error) bool {
+				return err == nil
+			},
+			expectedList: []firewall.IPEntry{
+				{
+					IP:        "1.2.3.4",
+					CreatedAt: firewall.MustParseDateTime("2001-01-01 10:00:00"),
+					UpdatedAt: firewall.MustParseDateTime("2001-01-01 10:00:00"),
+				},
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var fixedTime firewall.FixedTime
+
+			service := firewall.NewService(
+				firewall.WithTimeFunc(fixedTime.TimeFunc()),
+				firewall.WithEchoWrapper(),
+			)
+
+			if tt.initBefore != nil {
+				tt.initBefore(service, &fixedTime)
+			}
+
+			fixedTime.SetDateTime(tt.deleteAt)
+			deleted, err := service.DeleteOutOfDate(tt.deleteDuration)
+			if !tt.expectedErr(err) {
+				t.Error()
+			}
+			if !reflect.DeepEqual(deleted, tt.expectedList) {
+				t.Errorf("deleted\nactual:   %+v\nexpected: %+v", deleted, tt.expectedList)
 			}
 		})
 	}
