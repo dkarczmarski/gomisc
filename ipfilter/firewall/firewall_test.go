@@ -106,7 +106,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 			},
 		},
 		{
-			name: "add existed ip",
+			name: "delete existed ip",
 			initBefore: func(service *firewall.Service, fixedTime *firewall.FixedTime) {
 				fixedTime.SetDateTime("2001-01-01 10:00:00")
 				_ = service.AddIP("1.2.3.4")
