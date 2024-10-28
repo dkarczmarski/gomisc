@@ -4,12 +4,15 @@
     <title>ip filter</title>
 </head>
 <body>
+<h1>User: {{ .User.Username }}</h1>
+
 <form action="/api/ip/add" method="post" enctype="application/x-www-form-urlencoded">
     <input type="text" name="ip" required/><br/>
     <input type="submit" name="submit">
 </form>
+
 <ul>
-    {{ range . }}
+    {{ range .Entries }}
     <li>
         IP: {{ .IP }}
         CreatedAt: {{ .CreatedAt.Format "2006-01-02 15:04:05" }}
