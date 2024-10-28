@@ -3,11 +3,10 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/dkarczmarski/gomisc/ipfilter/firewall"
+	"github.com/dkarczmarski/gomisc/ipfilter/htserver"
 	"html/template"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,81 +26,19 @@ func main() {
 	)
 
 	mux.HandleFunc("POST /api/me/add", func(w http.ResponseWriter, r *http.Request) {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			log.Println(fmt.Errorf("net.SplitHostPort(): %w", err))
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		ip := host
-		log.Printf("ip: %v", ip)
-
-		if err := service.AddIPCtx(r.Context(), ip); err != nil {
-			log.Println(fmt.Errorf("service.AddIPCtx(): %w", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		htserver.HandleAddMe(w, r, service)
 	})
 
 	mux.HandleFunc("POST /api/me/delete", func(w http.ResponseWriter, r *http.Request) {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			log.Println(fmt.Errorf("net.SplitHostPort(): %w", err))
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		ip := host
-		log.Printf("ip: %v", ip)
-
-		if err := service.DeleteIPCtx(r.Context(), ip); err != nil {
-			log.Println(fmt.Errorf("service.DeleteIPCtx(): %w", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		htserver.HandleDeleteMe(w, r, service)
 	})
 
 	mux.HandleFunc("POST /api/ip/add", func(w http.ResponseWriter, r *http.Request) {
-		ip := r.FormValue("ip")
-		if len(ip) == 0 {
-			log.Println("no param: ip")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		log.Printf("ip: %v", ip)
-
-		if err := service.AddIPCtx(r.Context(), ip); err != nil {
-			log.Println(fmt.Errorf("service.AddIPCtx(): %w", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		htserver.HandleAddIP(w, r, service)
 	})
 
 	mux.HandleFunc("POST /api/ip/delete", func(w http.ResponseWriter, r *http.Request) {
-		ip := r.FormValue("ip")
-		if len(ip) == 0 {
-			log.Println("no param: ip")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		log.Printf("ip: %v", ip)
-
-		if err := service.DeleteIPCtx(r.Context(), ip); err != nil {
-			log.Println(fmt.Errorf("service.DeleteIPCtx(): %w", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		htserver.HandleDeleteIP(w, r, service)
 	})
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
