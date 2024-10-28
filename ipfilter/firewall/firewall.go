@@ -62,6 +62,10 @@ func NewService(opts ...func(*config)) *Service {
 // AddIP runs firewall command to add that ip.
 // When ip has been already added by this method then the next call only update UpdatedAt field.
 func (srv *Service) AddIP(ip string) error {
+	return srv.AddIPCtx(context.Background(), ip)
+}
+
+func (srv *Service) AddIPCtx(ctx context.Context, ip string) error {
 	if net.ParseIP(ip) == nil {
 		return errors.New("incorrect ip")
 	}
@@ -82,7 +86,7 @@ func (srv *Service) AddIP(ip string) error {
 
 	// execute 'add to firewall' command
 	cmdStr := fmt.Sprintf("ufw allow from %s to any proto tcp port 8080", ip)
-	out, err := exec.CommandContext(context.Background(), "echo", strings.Split(cmdStr, " ")...).
+	out, err := exec.CommandContext(ctx, "echo", strings.Split(cmdStr, " ")...).
 		CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("execute commmand: %w", err)
@@ -94,6 +98,10 @@ func (srv *Service) AddIP(ip string) error {
 }
 
 func (srv *Service) DeleteIP(ip string) error {
+	return srv.DeleteIPCtx(context.Background(), ip)
+}
+
+func (srv *Service) DeleteIPCtx(ctx context.Context, ip string) error {
 	// remove from registry
 	index, entry := srv.findByIP(ip)
 	if entry == nil {
@@ -103,7 +111,7 @@ func (srv *Service) DeleteIP(ip string) error {
 
 	// execute 'delete from firewall' command
 	cmdStr := fmt.Sprintf("ufw delete allow from %s to any proto tcp port 8080", ip)
-	out, err := exec.CommandContext(context.Background(), "echo", strings.Split(cmdStr, " ")...).
+	out, err := exec.CommandContext(ctx, "echo", strings.Split(cmdStr, " ")...).
 		CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("execute commmand: %w", err)
@@ -136,6 +144,10 @@ func (srv *Service) List() []IPEntry {
 }
 
 func (srv *Service) DeleteOutOfDate(duration time.Duration) ([]IPEntry, error) {
+	return srv.DeleteOutOfDateCtx(context.Background(), duration)
+}
+
+func (srv *Service) DeleteOutOfDateCtx(ctx context.Context, duration time.Duration) ([]IPEntry, error) {
 	before := srv.timeFunc().Add(-duration)
 
 	entriesBefore := srv.findAllBefore(before)
@@ -145,7 +157,7 @@ func (srv *Service) DeleteOutOfDate(duration time.Duration) ([]IPEntry, error) {
 
 	deletedEntries := make([]IPEntry, 0, len(entriesBefore))
 	for _, entry := range entriesBefore {
-		if err := srv.DeleteIP(entry.IP); err != nil {
+		if err := srv.DeleteIPCtx(ctx, entry.IP); err != nil {
 			return deletedEntries, err
 		}
 

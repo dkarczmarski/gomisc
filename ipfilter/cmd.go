@@ -30,7 +30,7 @@ func main() {
 		ip := r.FormValue("ip")
 		log.Printf("ip: %v", ip)
 
-		if err := service.AddIP(ip); err != nil {
+		if err := service.AddIPCtx(r.Context(), ip); err != nil {
 			log.Println(err)
 		}
 
@@ -43,7 +43,7 @@ func main() {
 		ip := r.FormValue("ip")
 		log.Printf("ip: %v", ip)
 
-		if err := service.DeleteIP(ip); err != nil {
+		if err := service.DeleteIPCtx(r.Context(), ip); err != nil {
 			log.Println(err)
 		}
 
@@ -66,7 +66,11 @@ func main() {
 	go func() {
 	loop:
 		for {
-			deleted, err := service.DeleteOutOfDate(15 * time.Second)
+			deleted, err := func() ([]firewall.IPEntry, error) {
+				srvCtx, srvCtxCancel := context.WithTimeout(ctx, 10*time.Second)
+				defer srvCtxCancel()
+				return service.DeleteOutOfDateCtx(srvCtx, 15*time.Second)
+			}()
 			if err != nil {
 				log.Print(err)
 			}
