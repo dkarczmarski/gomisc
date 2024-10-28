@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/dkarczmarski/gomisc/ipfilter/firewall"
 	"github.com/dkarczmarski/gomisc/ipfilter/htserver"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -17,39 +16,13 @@ import (
 func main() {
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 
-	mux := http.NewServeMux()
-
 	// todo: concurrent
 	service := firewall.NewService(
 		firewall.WithTimeFunc(time.Now),
 		firewall.WithSudoWrapper(),
 	)
 
-	mux.HandleFunc("POST /api/me/add", func(w http.ResponseWriter, r *http.Request) {
-		htserver.HandleAddMe(w, r, service)
-	})
-
-	mux.HandleFunc("POST /api/me/delete", func(w http.ResponseWriter, r *http.Request) {
-		htserver.HandleDeleteMe(w, r, service)
-	})
-
-	mux.HandleFunc("POST /api/ip/add", func(w http.ResponseWriter, r *http.Request) {
-		htserver.HandleAddIP(w, r, service)
-	})
-
-	mux.HandleFunc("POST /api/ip/delete", func(w http.ResponseWriter, r *http.Request) {
-		htserver.HandleDeleteIP(w, r, service)
-	})
-
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		templ := template.Must(template.ParseFiles("templ/index.html"))
-
-		entries := service.List()
-
-		if err := templ.Execute(w, entries); err != nil {
-			log.Fatal(err)
-		}
-	})
+	mux := htserver.NewServeMux(service)
 
 	var wg sync.WaitGroup
 
