@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+var (
+	ErrIncorrectIP = errors.New("incorrect ip")
+	ErrIPNotFound  = errors.New("ip not found")
+)
+
 type IPEntry struct {
 	IP        string
 	CreatedAt time.Time
@@ -67,7 +72,7 @@ func (srv *Service) AddIP(ip string) error {
 
 func (srv *Service) AddIPCtx(ctx context.Context, ip string) error {
 	if net.ParseIP(ip) == nil {
-		return errors.New("incorrect ip")
+		return fmt.Errorf("%v: %w", ip, ErrIncorrectIP)
 	}
 
 	if _, entry := srv.findByIP(ip); entry != nil {
@@ -102,10 +107,14 @@ func (srv *Service) DeleteIP(ip string) error {
 }
 
 func (srv *Service) DeleteIPCtx(ctx context.Context, ip string) error {
+	if net.ParseIP(ip) == nil {
+		return fmt.Errorf("%v: %w", ip, ErrIncorrectIP)
+	}
+
 	// remove from registry
 	index, entry := srv.findByIP(ip)
 	if entry == nil {
-		return fmt.Errorf("ip %v: %w", ip, errors.New("not found"))
+		return fmt.Errorf("ip %v: %w", ip, ErrIPNotFound)
 	}
 	srv.deleteByIndex(index)
 

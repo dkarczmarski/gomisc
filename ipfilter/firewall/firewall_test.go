@@ -1,6 +1,7 @@
 package firewall_test
 
 import (
+	"errors"
 	"github.com/dkarczmarski/gomisc/ipfilter/firewall"
 	"reflect"
 	"testing"
@@ -21,7 +22,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 				return service.AddIP("1.2.3,,4")
 			},
 			expectedErr: func(err error) bool {
-				return err != nil
+				return errors.Is(err, firewall.ErrIncorrectIP)
 			},
 		},
 		{
@@ -30,9 +31,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 				fixedTime.SetDateTime("2001-01-01 10:00:00")
 				return service.AddIP("1.2.3.4")
 			},
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
+			expectedErr: noError,
 			expectedList: []firewall.IPEntry{
 				{
 					IP:        "1.2.3.4",
@@ -51,9 +50,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 				fixedTime.SetDateTime("2001-01-01 10:01:00")
 				return service.AddIP("2.2.8.8")
 			},
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
+			expectedErr: noError,
 			expectedList: []firewall.IPEntry{
 				{
 					IP:        "1.2.3.4",
@@ -77,9 +74,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 				fixedTime.SetDateTime("2001-01-01 10:01:00")
 				return service.AddIP("1.2.3.4")
 			},
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
+			expectedErr: noError,
 			expectedList: []firewall.IPEntry{
 				{
 					IP:        "1.2.3.4",
@@ -94,7 +89,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 				return service.DeleteIP("1.2.3,,4")
 			},
 			expectedErr: func(err error) bool {
-				return err != nil
+				return errors.Is(err, firewall.ErrIncorrectIP)
 			},
 		},
 		{
@@ -103,7 +98,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 				return service.DeleteIP("1.2.3.4")
 			},
 			expectedErr: func(err error) bool {
-				return err != nil
+				return errors.Is(err, firewall.ErrIPNotFound)
 			},
 		},
 		{
@@ -118,9 +113,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 			testFunc: func(service *firewall.Service, fixedTime *firewall.FixedTime) error {
 				return service.DeleteIP("1.2.3.4")
 			},
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
+			expectedErr: noError,
 			expectedList: []firewall.IPEntry{
 				{
 					IP:        "2.2.8.8",
@@ -144,7 +137,7 @@ func TestService_AddDeleteIP(t *testing.T) {
 
 			err := tt.testFunc(service, &fixedTime)
 			if !tt.expectedErr(err) {
-				t.Error()
+				t.Error("expected error is not satisfied")
 				return
 			}
 			if err == nil {
@@ -171,10 +164,8 @@ func TestService_DeleteOutOfDate(t *testing.T) {
 			},
 			deleteAt:       "2001-01-01 10:00:00",
 			deleteDuration: 5 * time.Minute,
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
-			expectedList: []firewall.IPEntry{},
+			expectedErr:    noError,
+			expectedList:   []firewall.IPEntry{},
 		},
 		{
 			name: "when none is out-of-date",
@@ -184,10 +175,8 @@ func TestService_DeleteOutOfDate(t *testing.T) {
 			},
 			deleteAt:       "2001-01-01 10:04:00",
 			deleteDuration: 5 * time.Minute,
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
-			expectedList: []firewall.IPEntry{},
+			expectedErr:    noError,
+			expectedList:   []firewall.IPEntry{},
 		},
 		{
 			name: "when CreatedAt is out-of-date but not UpdatedAt",
@@ -200,10 +189,8 @@ func TestService_DeleteOutOfDate(t *testing.T) {
 			},
 			deleteAt:       "2001-01-01 10:06:00",
 			deleteDuration: 5 * time.Minute,
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
-			expectedList: []firewall.IPEntry{},
+			expectedErr:    noError,
+			expectedList:   []firewall.IPEntry{},
 		},
 		{
 			name: "when one entry is out-of-date",
@@ -216,9 +203,7 @@ func TestService_DeleteOutOfDate(t *testing.T) {
 			},
 			deleteAt:       "2001-01-01 10:06:00",
 			deleteDuration: 5 * time.Minute,
-			expectedErr: func(err error) bool {
-				return err == nil
-			},
+			expectedErr:    noError,
 			expectedList: []firewall.IPEntry{
 				{
 					IP:        "1.2.3.4",
@@ -250,4 +235,8 @@ func TestService_DeleteOutOfDate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func noError(err error) bool {
+	return err == nil
 }
