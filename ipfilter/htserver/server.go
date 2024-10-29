@@ -4,6 +4,7 @@ import (
 	"github.com/dkarczmarski/gomisc/ipfilter/firewall"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 )
 
@@ -67,9 +68,11 @@ func NewServeMux(service *firewall.Service) *ServeMux {
 
 		templ := template.Must(template.ParseFiles("templates/index.html"))
 
+		host, _, _ := net.SplitHostPort(r.RemoteAddr)
 		entries := service.List()
 
 		if err := templ.Execute(w, map[string]interface{}{
+			"MyIP":    host,
 			"User":    user,
 			"Entries": entries,
 		}); err != nil {

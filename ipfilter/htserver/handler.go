@@ -18,7 +18,7 @@ func HandleAddMe(w http.ResponseWriter, r *http.Request, service Firewall) {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		log.Println(fmt.Errorf("net.SplitHostPort(): %w", err))
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -38,7 +38,7 @@ func HandleDeleteMe(w http.ResponseWriter, r *http.Request, service Firewall) {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		log.Println(fmt.Errorf("net.SplitHostPort(): %w", err))
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 

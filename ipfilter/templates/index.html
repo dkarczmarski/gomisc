@@ -4,25 +4,56 @@
     <title>ip filter</title>
 </head>
 <body>
+
 <h1>User: {{ .User.Username }}</h1>
+
+<h3>Me</h3>
+
+{{ .MyIP }}
+
+<form action="/api/me/add" method="post" enctype="application/x-www-form-urlencoded">
+    <input type="submit" value="add">
+</form>
+
+<form action="/api/me/delete" method="post" enctype="application/x-www-form-urlencoded">
+    <input type="submit" value="delete">
+</form>
+
+<h3>Add IP</h3>
 
 <form action="/api/ip/add" method="post" enctype="application/x-www-form-urlencoded">
     <input type="text" name="ip" required/><br/>
-    <input type="submit" name="submit">
+    <input type="submit" value="add">
 </form>
 
-<ul>
-    {{ range .Entries }}
-    <li>
-        IP: {{ .IP }}
-        CreatedAt: {{ .CreatedAt.Format "2006-01-02 15:04:05" }}
-        UpdatedAt: {{ .UpdatedAt.Format "2006-01-02 15:04:05" }}
-        <form action="/api/ip/delete" method="post">
-            <input type="hidden" name="ip" value="{{.IP}}"/>
-            <input type="submit" value="remove"/>
-        </form>
-    </li>
+<h3>Firewall Entries</h3>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th scope="col">#</th>
+        <th scope="col">IP</th>
+        <th scope="col">CreatedAt</th>
+        <th scope="col">UpdatedAt</th>
+        <th scope="col">Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{ range $index, $item := .Entries }}
+    <tr>
+        <th scope="row">{{ $index }}</th>
+        <td>{{ $item.IP }}</td>
+        <td>{{ $item.CreatedAt.Format "2006-01-02 15:04:05" }}</td>
+        <td>@{{ $item.UpdatedAt.Format "2006-01-02 15:04:05" }}</td>
+        <td>
+            <form action="/api/ip/delete" method="post">
+                <input type="hidden" name="ip" value="{{.IP}}"/>
+                <input type="submit" value="delete"/>
+            </form>
+        </td>
+    </tr>
     {{ end }}
-</ul>
+    </tbody>
+</table>
 </body>
 </html>
