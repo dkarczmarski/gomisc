@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"github.com/dkarczmarski/gomisc/windguru/env"
 	"github.com/dkarczmarski/gomisc/windguru/windguru"
 	"github.com/dkarczmarski/gomisc/windguru/windsnsr"
@@ -9,11 +10,15 @@ import (
 	"time"
 )
 
+var iFlag = flag.Bool("i", false, "infinite")
+
 func MsToKnot(v float64) float64 {
 	return v * 1.9438
 }
 
 func main() {
+	flag.Parse()
+
 	if err := env.Load(".env"); err != nil {
 		log.Fatal(err)
 	}
@@ -62,6 +67,10 @@ func main() {
 			continue
 		}
 		log.Println(wgResp)
+
+		if iFlag == nil || !*iFlag {
+			return
+		}
 
 		time.Sleep(30 * time.Second)
 	}
